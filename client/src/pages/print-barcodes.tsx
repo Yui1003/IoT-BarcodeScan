@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import BarcodeDisplay from '@/components/barcode-display';
+import { useRealtimeItems } from '@/hooks/use-realtime-items';
 
 interface Item {
   id: string;
@@ -19,6 +20,8 @@ interface Item {
 
 export default function PrintBarcodes() {
   const printRef = useRef<HTMLDivElement>(null);
+  
+  useRealtimeItems();
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
     queryKey: ['/api/items'],

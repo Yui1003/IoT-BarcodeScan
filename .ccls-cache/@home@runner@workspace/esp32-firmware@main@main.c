@@ -221,6 +221,8 @@ typedef struct {
     char category[32];
     int quantity;
     int new_stock;
+    int quantity_changed;
+    char action[16];
     char message[64];
 } scan_result_t;
 
@@ -519,6 +521,72 @@ static void display_success(const char *name, const char *category, int new_stoc
     oled_update();
 }
 
+static void display_added(const char *name, const char *category, int quantity_added, int new_stock)
+{
+    oled_clear();
+    
+    char add_line[22];
+    snprintf(add_line, sizeof(add_line), "ADDED +%d", quantity_added);
+    oled_draw_string_large(5, 0, add_line);
+    
+    char name_line[22];
+    snprintf(name_line, sizeof(name_line), "%.21s", name);
+    oled_draw_string(0, 22, name_line);
+    
+    char cat_line[22];
+    snprintf(cat_line, sizeof(cat_line), "Cat: %.16s", category);
+    oled_draw_string(0, 34, cat_line);
+    
+    char stock_line[22];
+    snprintf(stock_line, sizeof(stock_line), "New Stock: %d", new_stock);
+    oled_draw_string(0, 50, stock_line);
+    
+    oled_update();
+}
+
+static void display_deducted(const char *name, const char *category, int quantity_deducted, int new_stock)
+{
+    oled_clear();
+    
+    char deduct_line[22];
+    snprintf(deduct_line, sizeof(deduct_line), "DEDUCTED -%d", quantity_deducted);
+    oled_draw_string_large(0, 0, deduct_line);
+    
+    char name_line[22];
+    snprintf(name_line, sizeof(name_line), "%.21s", name);
+    oled_draw_string(0, 22, name_line);
+    
+    char cat_line[22];
+    snprintf(cat_line, sizeof(cat_line), "Cat: %.16s", category);
+    oled_draw_string(0, 34, cat_line);
+    
+    char stock_line[22];
+    snprintf(stock_line, sizeof(stock_line), "New Stock: %d", new_stock);
+    oled_draw_string(0, 50, stock_line);
+    
+    oled_update();
+}
+
+static void display_view_details(const char *name, const char *category, int current_stock, int original_stock)
+{
+    oled_clear();
+    oled_draw_string_large(20, 0, "DETAILS");
+    
+    char name_line[22];
+    snprintf(name_line, sizeof(name_line), "%.21s", name);
+    oled_draw_string(0, 20, name_line);
+    
+    char cat_line[22];
+    snprintf(cat_line, sizeof(cat_line), "Cat: %.16s", category);
+    oled_draw_string(0, 32, cat_line);
+    
+    char stock_line[22];
+    snprintf(stock_line, sizeof(stock_line), "Stock: %d/%d", current_stock, original_stock);
+    oled_draw_string(0, 48, stock_line);
+    
+    oled_update();
+}
+
 static void display_error(const char *message)
 {
     oled_clear();
@@ -757,10 +825,13 @@ static scan_result_t send_scan_request(const char *barcode)
             result.found = true;
             result.success = json_get_bool(http_response, "success");
             result.new_stock = json_get_int(http_response, "newStock");
+            result.quantity_changed = json_get_int(http_response, "quantityChanged");
             json_get_string(http_response, "name", result.name, sizeof(result.name));
             json_get_string(http_response, "category", result.category, sizeof(result.category));
+            json_get_string(http_response, "action", result.action, sizeof(result.action));
             json_get_string(http_response, "message", result.message, sizeof(result.message));
             
+            // Fallback: parse from nested item object if top-level name is empty
             if (result.name[0] == '\0') {
                 char *item_pos = strstr(http_response, "\"item\":");
                 if (item_pos) {
@@ -768,6 +839,12 @@ static scan_result_t send_scan_request(const char *barcode)
                     json_get_string(item_pos, "category", result.category, sizeof(result.category));
                     result.quantity = json_get_int(item_pos, "quantity");
                 }
+            }
+            
+            // For VIEW mode, parse currentStock and originalStock (must be after fallback)
+            if (strcmp(result.action, "VIEW") == 0) {
+                result.new_stock = json_get_int(http_response, "currentStock");
+                result.quantity = json_get_int(http_response, "originalStock");
             }
         } else {
             strcpy(result.message, "Server error");
@@ -801,9 +878,18 @@ static void api_task(void *arg)
                 if (!result.found) {
                     ESP_LOGI(TAG, "Barcode not found in database");
                     display_not_found(api_barcode);
-                } else if (!result.success) {
+                } else if (!result.success && strcmp(result.action, "DEDUCT") == 0) {
                     ESP_LOGI(TAG, "Item out of stock: %s", result.name);
                     display_out_of_stock(result.name, result.category);
+                } else if (strcmp(result.action, "ADD") == 0) {
+                    ESP_LOGI(TAG, "Added %d to %s, new stock: %d", result.quantity_changed, result.name, result.new_stock);
+                    display_added(result.name, result.category, result.quantity_changed, result.new_stock);
+                } else if (strcmp(result.action, "DEDUCT") == 0) {
+                    ESP_LOGI(TAG, "Deducted %d from %s, new stock: %d", result.quantity_changed, result.name, result.new_stock);
+                    display_deducted(result.name, result.category, result.quantity_changed, result.new_stock);
+                } else if (strcmp(result.action, "VIEW") == 0) {
+                    ESP_LOGI(TAG, "View details: %s, stock: %d/%d", result.name, result.new_stock, result.quantity);
+                    display_view_details(result.name, result.category, result.new_stock, result.quantity);
                 } else {
                     ESP_LOGI(TAG, "Scan success: %s, new stock: %d", result.name, result.new_stock);
                     display_success(result.name, result.category, result.new_stock);

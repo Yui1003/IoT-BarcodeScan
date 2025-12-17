@@ -59,6 +59,11 @@
 #define BARCODE_MAX_LEN     64
 #define HTTP_RESPONSE_MAX   1024
 
+// LED Configuration (Stock Health Indicators)
+#define LED_GREEN_GPIO      4   // Healthy stock
+#define LED_YELLOW_GPIO     5   // Low stock
+#define LED_RED_GPIO        6   // Out of stock
+
 // Task Stack Sizes (increased for stability)
 #define USB_HOST_TASK_STACK_SIZE    8192
 #define API_TASK_STACK_SIZE         12288
@@ -222,9 +227,59 @@ typedef struct {
     int quantity;
     int new_stock;
     int quantity_changed;
+    int requested_quantity;
+    bool was_partial_deduction;
     char action[16];
     char message[64];
+    char stock_health[16];  // "healthy", "low", or "out_of_stock"
 } scan_result_t;
+
+/* ================= LED CONTROL ================= */
+
+static void led_init(void)
+{
+    ESP_LOGI(TAG, "Initializing stock health LEDs...");
+    
+    gpio_config_t io_conf = {
+        .intr_type = GPIO_INTR_DISABLE,
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = (1ULL << LED_GREEN_GPIO) | (1ULL << LED_YELLOW_GPIO) | (1ULL << LED_RED_GPIO),
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+    };
+    gpio_config(&io_conf);
+    
+    gpio_set_level(LED_GREEN_GPIO, 0);
+    gpio_set_level(LED_YELLOW_GPIO, 0);
+    gpio_set_level(LED_RED_GPIO, 0);
+    
+    ESP_LOGI(TAG, "LEDs initialized (Green=%d, Yellow=%d, Red=%d)", LED_GREEN_GPIO, LED_YELLOW_GPIO, LED_RED_GPIO);
+}
+
+static void led_set_stock_health(const char *health)
+{
+    gpio_set_level(LED_GREEN_GPIO, 0);
+    gpio_set_level(LED_YELLOW_GPIO, 0);
+    gpio_set_level(LED_RED_GPIO, 0);
+    
+    if (strcmp(health, "healthy") == 0) {
+        gpio_set_level(LED_GREEN_GPIO, 1);
+        ESP_LOGI(TAG, "LED: GREEN (Healthy stock)");
+    } else if (strcmp(health, "low") == 0) {
+        gpio_set_level(LED_YELLOW_GPIO, 1);
+        ESP_LOGI(TAG, "LED: YELLOW (Low stock)");
+    } else if (strcmp(health, "out_of_stock") == 0) {
+        gpio_set_level(LED_RED_GPIO, 1);
+        ESP_LOGI(TAG, "LED: RED (Out of stock)");
+    }
+}
+
+static void led_all_off(void)
+{
+    gpio_set_level(LED_GREEN_GPIO, 0);
+    gpio_set_level(LED_YELLOW_GPIO, 0);
+    gpio_set_level(LED_RED_GPIO, 0);
+}
 
 /* ================= I2C CLEANUP ================= */
 
@@ -587,6 +642,33 @@ static void display_view_details(const char *name, const char *category, int cur
     oled_update();
 }
 
+static void display_partial_deduction(const char *name, const char *category, int quantity_deducted, int requested, int new_stock)
+{
+    oled_clear();
+    
+    char deduct_line[22];
+    snprintf(deduct_line, sizeof(deduct_line), "PARTIAL -%d", quantity_deducted);
+    oled_draw_string_large(0, 0, deduct_line);
+    
+    char name_line[22];
+    snprintf(name_line, sizeof(name_line), "%.21s", name);
+    oled_draw_string(0, 20, name_line);
+    
+    char info_line[22];
+    snprintf(info_line, sizeof(info_line), "Only %d avail", quantity_deducted);
+    oled_draw_string(0, 32, info_line);
+    
+    char req_line[22];
+    snprintf(req_line, sizeof(req_line), "Requested: %d", requested);
+    oled_draw_string(0, 44, req_line);
+    
+    char stock_line[22];
+    snprintf(stock_line, sizeof(stock_line), "New Stock: %d", new_stock);
+    oled_draw_string(0, 56, stock_line);
+    
+    oled_update();
+}
+
 static void display_error(const char *message)
 {
     oled_clear();
@@ -826,10 +908,13 @@ static scan_result_t send_scan_request(const char *barcode)
             result.success = json_get_bool(http_response, "success");
             result.new_stock = json_get_int(http_response, "newStock");
             result.quantity_changed = json_get_int(http_response, "quantityChanged");
+            result.requested_quantity = json_get_int(http_response, "requestedQuantity");
+            result.was_partial_deduction = json_get_bool(http_response, "wasPartialDeduction");
             json_get_string(http_response, "name", result.name, sizeof(result.name));
             json_get_string(http_response, "category", result.category, sizeof(result.category));
             json_get_string(http_response, "action", result.action, sizeof(result.action));
             json_get_string(http_response, "message", result.message, sizeof(result.message));
+            json_get_string(http_response, "stockHealth", result.stock_health, sizeof(result.stock_health));
             
             // Fallback: parse from nested item object if top-level name is empty
             if (result.name[0] == '\0') {
@@ -868,37 +953,69 @@ static void api_task(void *arg)
         if (xSemaphoreTake(api_semaphore, portMAX_DELAY) == pdTRUE) {
             ESP_LOGI(TAG, "Processing barcode: %s", api_barcode);
             
+            led_all_off();
+            
             if (oled_ready) {
                 display_scanning(api_barcode);
             }
             
             scan_result_t result = send_scan_request(api_barcode);
             
-            if (oled_ready) {
-                if (!result.found) {
-                    ESP_LOGI(TAG, "Barcode not found in database");
+            if (!result.found) {
+                ESP_LOGI(TAG, "Barcode not found in database");
+                led_set_stock_health("out_of_stock");
+                if (oled_ready) {
                     display_not_found(api_barcode);
-                } else if (!result.success && strcmp(result.action, "DEDUCT") == 0) {
-                    ESP_LOGI(TAG, "Item out of stock: %s", result.name);
+                }
+            } else if (!result.success && strcmp(result.action, "DEDUCT") == 0) {
+                ESP_LOGI(TAG, "Item out of stock: %s", result.name);
+                led_set_stock_health("out_of_stock");
+                if (oled_ready) {
                     display_out_of_stock(result.name, result.category);
-                } else if (strcmp(result.action, "ADD") == 0) {
+                }
+            } else {
+                if (result.stock_health[0] != '\0') {
+                    led_set_stock_health(result.stock_health);
+                } else {
+                    led_set_stock_health("healthy");
+                }
+                
+                if (strcmp(result.action, "ADD") == 0) {
                     ESP_LOGI(TAG, "Added %d to %s, new stock: %d", result.quantity_changed, result.name, result.new_stock);
-                    display_added(result.name, result.category, result.quantity_changed, result.new_stock);
+                    if (oled_ready) {
+                        display_added(result.name, result.category, result.quantity_changed, result.new_stock);
+                    }
                 } else if (strcmp(result.action, "DEDUCT") == 0) {
-                    ESP_LOGI(TAG, "Deducted %d from %s, new stock: %d", result.quantity_changed, result.name, result.new_stock);
-                    display_deducted(result.name, result.category, result.quantity_changed, result.new_stock);
+                    if (result.was_partial_deduction) {
+                        ESP_LOGI(TAG, "Partial deduction: only %d of %d requested deducted from %s", 
+                                 result.quantity_changed, result.requested_quantity, result.name);
+                        if (oled_ready) {
+                            display_partial_deduction(result.name, result.category, result.quantity_changed, 
+                                                      result.requested_quantity, result.new_stock);
+                        }
+                    } else {
+                        ESP_LOGI(TAG, "Deducted %d from %s, new stock: %d", result.quantity_changed, result.name, result.new_stock);
+                        if (oled_ready) {
+                            display_deducted(result.name, result.category, result.quantity_changed, result.new_stock);
+                        }
+                    }
                 } else if (strcmp(result.action, "VIEW") == 0) {
                     ESP_LOGI(TAG, "View details: %s, stock: %d/%d", result.name, result.new_stock, result.quantity);
-                    display_view_details(result.name, result.category, result.new_stock, result.quantity);
+                    if (oled_ready) {
+                        display_view_details(result.name, result.category, result.new_stock, result.quantity);
+                    }
                 } else {
                     ESP_LOGI(TAG, "Scan success: %s, new stock: %d", result.name, result.new_stock);
-                    display_success(result.name, result.category, result.new_stock);
+                    if (oled_ready) {
+                        display_success(result.name, result.category, result.new_stock);
+                    }
                 }
             }
             
             memset(api_barcode, 0, sizeof(api_barcode));
             
             vTaskDelay(pdMS_TO_TICKS(3000));
+            led_all_off();
             if (oled_ready) {
                 display_startup();
             }
@@ -1068,8 +1185,8 @@ static void usb_host_task(void *arg)
 void app_main(void)
 {
     ESP_LOGI(TAG, "=========================================");
-    ESP_LOGI(TAG, "  Inventory Management Scanner v2.0");
-    ESP_LOGI(TAG, "  ESP32-S3 + USB Scanner + OLED");
+    ESP_LOGI(TAG, "  Inventory Management Scanner v2.1");
+    ESP_LOGI(TAG, "  ESP32-S3 + USB Scanner + OLED + LEDs");
     ESP_LOGI(TAG, "  ESP-IDF v5.3.x Compatible");
     ESP_LOGI(TAG, "=========================================");
 
@@ -1097,6 +1214,8 @@ void app_main(void)
     } else {
         ESP_LOGW(TAG, "I2C init failed - continuing without OLED");
     }
+    
+    led_init();
     
     vTaskDelay(pdMS_TO_TICKS(500));
 

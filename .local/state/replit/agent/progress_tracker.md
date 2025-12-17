@@ -21,4 +21,15 @@ Environment Migration Complete:
 Bug Fixes:
 [x] Fixed transaction history not refreshing when navigating between tabs - now uses route-aware refetch
 
+December 17, 2025 - New Features:
+[x] Print Barcodes page now updates in real-time when items are added (WebSocket listener added)
+[x] Backend API updated to include stock health status (healthy/low/out_of_stock) in scan response
+[x] Backend API updated to handle partial deductions with clear messaging when deducting more than available
+[x] ESP32 firmware updated to support 3 LEDs (Green/Yellow/Red) for stock health indication
+    - GPIO 4: Green LED (Healthy stock - >= 31%)
+    - GPIO 5: Yellow LED (Low stock - 1-30%)
+    - GPIO 6: Red LED (Out of stock - 0%)
+[x] ESP32 OLED display shows partial deduction message when trying to deduct more than available stock
+[x] ESP32 firmware version updated to v2.1
+
 Migration Status: COMPLETE (December 17, 2025)

@@ -233,6 +233,16 @@ export async function registerRoutes(
       const { mode, quantity: modeQuantity } = scannerMode;
 
       if (mode === 'DETAILS') {
+        const originalStock = item.originalStock || currentQuantity;
+        
+        const getStockHealth = (qty: number, origStock: number) => {
+          if (qty <= 0) return 'out_of_stock';
+          const percentage = origStock > 0 ? (qty / origStock) * 100 : 100;
+          return percentage >= 31 ? 'healthy' : 'low';
+        };
+        
+        const stockHealth = getStockHealth(currentQuantity, originalStock);
+        
         const transactionData = {
           barcode,
           action: 'VIEW',
@@ -251,13 +261,22 @@ export async function registerRoutes(
           name: item.name,
           category: item.category,
           currentStock: currentQuantity,
-          originalStock: item.originalStock || currentQuantity,
+          originalStock: originalStock,
           action: 'VIEW',
+          stockHealth,
           message: 'Item details retrieved',
         });
       }
 
       if (mode === 'DECREMENT') {
+        const originalStock = item.originalStock || currentQuantity;
+        
+        const getStockHealth = (qty: number, origStock: number) => {
+          if (qty <= 0) return 'out_of_stock';
+          const percentage = origStock > 0 ? (qty / origStock) * 100 : 100;
+          return percentage >= 31 ? 'healthy' : 'low';
+        };
+
         if (currentQuantity <= 0) {
           return res.json({
             success: false,
@@ -270,13 +289,16 @@ export async function registerRoutes(
             category: item.category,
             action: 'DEDUCT',
             quantityChanged: 0,
+            requestedQuantity: modeQuantity,
             message: 'Item is out of stock',
             newStock: 0,
+            stockHealth: 'out_of_stock',
           });
         }
 
         const deductAmount = Math.min(modeQuantity, currentQuantity);
         const newQuantity = currentQuantity - deductAmount;
+        const wasPartialDeduction = deductAmount < modeQuantity;
         
         await itemsRef.child(barcode).update({
           quantity: newQuantity,
@@ -290,6 +312,13 @@ export async function registerRoutes(
         };
         await transactionsRef.push(transactionData);
 
+        const stockHealth = getStockHealth(newQuantity, originalStock);
+        
+        let message = `Stock decreased by ${deductAmount}`;
+        if (wasPartialDeduction) {
+          message = `Only ${deductAmount} deducted (was max available). Requested: ${modeQuantity}`;
+        }
+
         return res.json({
           success: true,
           item: {
@@ -302,13 +331,23 @@ export async function registerRoutes(
           category: item.category,
           action: 'DEDUCT',
           quantityChanged: deductAmount,
+          requestedQuantity: modeQuantity,
+          wasPartialDeduction,
           newStock: newQuantity,
-          message: `Stock decreased by ${deductAmount}`,
+          stockHealth,
+          message,
         });
       }
 
       if (mode === 'INCREMENT') {
+        const originalStock = item.originalStock || currentQuantity;
         const newQuantity = currentQuantity + modeQuantity;
+        
+        const getStockHealth = (qty: number, origStock: number) => {
+          if (qty <= 0) return 'out_of_stock';
+          const percentage = origStock > 0 ? (qty / origStock) * 100 : 100;
+          return percentage >= 31 ? 'healthy' : 'low';
+        };
         
         await itemsRef.child(barcode).update({
           quantity: newQuantity,
@@ -321,6 +360,8 @@ export async function registerRoutes(
           timestamp: Date.now(),
         };
         await transactionsRef.push(transactionData);
+
+        const stockHealth = getStockHealth(newQuantity, originalStock);
 
         return res.json({
           success: true,
@@ -335,6 +376,7 @@ export async function registerRoutes(
           action: 'ADD',
           quantityChanged: modeQuantity,
           newStock: newQuantity,
+          stockHealth,
           message: `Stock increased by ${modeQuantity}`,
         });
       }
