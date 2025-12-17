@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { LayoutDashboard, Package, PlusSquare, LogOut, ScanLine, QrCode, History, Printer } from 'lucide-react';
+import { LayoutDashboard, Package, PlusSquare, LogOut, ScanLine, QrCode, History, Printer, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -58,6 +58,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: '/add', icon: PlusSquare, label: 'Add Item' },
     { href: '/transactions', icon: History, label: 'Transactions' },
     { href: '/print-barcodes', icon: Printer, label: 'Print Barcodes' },
+    { href: '/mode', icon: Settings2, label: 'Scanner Mode' },
   ];
 
   return (

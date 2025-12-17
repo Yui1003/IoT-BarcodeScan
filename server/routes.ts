@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "./firebase";
 import { WebSocketServer, WebSocket } from "ws";
+import { scannerModeSchema, type ScannerMode } from "@shared/schema";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -9,6 +10,7 @@ export async function registerRoutes(
 ): Promise<Server> {
   const itemsRef = db.ref('items');
   const transactionsRef = db.ref('transactions');
+  const scannerModeRef = db.ref('scannerMode');
 
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   const clients = new Set<WebSocket>();
@@ -59,6 +61,39 @@ export async function registerRoutes(
         category: item?.category || 'Unknown',
       };
       broadcast('transaction_added', enrichedTransaction);
+    }
+  });
+
+  scannerModeRef.on('value', (snapshot) => {
+    const mode = snapshot.val() || { mode: 'DECREMENT', quantity: 1 };
+    broadcast('scanner_mode_update', mode);
+  });
+
+  app.get("/api/scanner-mode", async (req, res) => {
+    try {
+      const snapshot = await scannerModeRef.once('value');
+      const mode = snapshot.val() || { mode: 'DECREMENT', quantity: 1 };
+      res.json(mode);
+    } catch (error) {
+      console.error('Error fetching scanner mode:', error);
+      res.status(500).json({ error: 'Failed to fetch scanner mode' });
+    }
+  });
+
+  app.put("/api/scanner-mode", async (req, res) => {
+    try {
+      const result = scannerModeSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: 'Invalid scanner mode', details: result.error.errors });
+      }
+
+      const modeData = result.data;
+      await scannerModeRef.set(modeData);
+      
+      res.json(modeData);
+    } catch (error) {
+      console.error('Error updating scanner mode:', error);
+      res.status(500).json({ error: 'Failed to update scanner mode' });
     }
   });
 
@@ -185,53 +220,126 @@ export async function registerRoutes(
       if (!snapshot.exists()) {
         return res.status(404).json({ 
           success: false,
-          error: 'Item not found' 
+          error: 'Item not found',
+          action: 'NOT_FOUND',
         });
       }
 
       const item = snapshot.val();
       const currentQuantity = item.quantity || 0;
 
-      if (currentQuantity <= 0) {
+      const modeSnapshot = await scannerModeRef.once('value');
+      const scannerMode: ScannerMode = modeSnapshot.val() || { mode: 'DECREMENT', quantity: 1 };
+      const { mode, quantity: modeQuantity } = scannerMode;
+
+      if (mode === 'DETAILS') {
+        const transactionData = {
+          barcode,
+          action: 'VIEW',
+          quantity: 0,
+          timestamp: Date.now(),
+        };
+        await transactionsRef.push(transactionData);
+
         return res.json({
-          success: false,
+          success: true,
           item: {
             id: barcode,
             barcode,
             ...item,
           },
-          message: 'Item is out of stock',
-          newStock: 0,
+          name: item.name,
+          category: item.category,
+          currentStock: currentQuantity,
+          originalStock: item.originalStock || currentQuantity,
+          action: 'VIEW',
+          message: 'Item details retrieved',
         });
       }
 
-      const newQuantity = currentQuantity - 1;
-      await itemsRef.child(barcode).update({
-        quantity: newQuantity,
-      });
+      if (mode === 'DECREMENT') {
+        if (currentQuantity <= 0) {
+          return res.json({
+            success: false,
+            item: {
+              id: barcode,
+              barcode,
+              ...item,
+            },
+            name: item.name,
+            category: item.category,
+            action: 'DEDUCT',
+            quantityChanged: 0,
+            message: 'Item is out of stock',
+            newStock: 0,
+          });
+        }
 
-      const transactionData = {
-        barcode,
-        action: 'DEDUCT',
-        timestamp: Date.now(),
-      };
-      await transactionsRef.push(transactionData);
+        const deductAmount = Math.min(modeQuantity, currentQuantity);
+        const newQuantity = currentQuantity - deductAmount;
+        
+        await itemsRef.child(barcode).update({
+          quantity: newQuantity,
+        });
 
-      const updatedItem = {
-        id: barcode,
-        barcode,
-        ...item,
-        quantity: newQuantity,
-      };
+        const transactionData = {
+          barcode,
+          action: 'DEDUCT',
+          quantity: deductAmount,
+          timestamp: Date.now(),
+        };
+        await transactionsRef.push(transactionData);
 
-      res.json({
-        success: true,
-        item: updatedItem,
-        name: item.name,
-        category: item.category,
-        newStock: newQuantity,
-        message: 'Stock decreased successfully',
-      });
+        return res.json({
+          success: true,
+          item: {
+            id: barcode,
+            barcode,
+            ...item,
+            quantity: newQuantity,
+          },
+          name: item.name,
+          category: item.category,
+          action: 'DEDUCT',
+          quantityChanged: deductAmount,
+          newStock: newQuantity,
+          message: `Stock decreased by ${deductAmount}`,
+        });
+      }
+
+      if (mode === 'INCREMENT') {
+        const newQuantity = currentQuantity + modeQuantity;
+        
+        await itemsRef.child(barcode).update({
+          quantity: newQuantity,
+        });
+
+        const transactionData = {
+          barcode,
+          action: 'ADD',
+          quantity: modeQuantity,
+          timestamp: Date.now(),
+        };
+        await transactionsRef.push(transactionData);
+
+        return res.json({
+          success: true,
+          item: {
+            id: barcode,
+            barcode,
+            ...item,
+            quantity: newQuantity,
+          },
+          name: item.name,
+          category: item.category,
+          action: 'ADD',
+          quantityChanged: modeQuantity,
+          newStock: newQuantity,
+          message: `Stock increased by ${modeQuantity}`,
+        });
+      }
+
+      res.status(400).json({ error: 'Invalid scanner mode' });
     } catch (error) {
       console.error('Error scanning barcode:', error);
       res.status(500).json({ error: 'Failed to process scan' });

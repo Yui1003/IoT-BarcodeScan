@@ -10,6 +10,7 @@ import AddItem from "@/pages/add-item";
 import Login from "@/pages/login";
 import Transactions from "@/pages/transactions";
 import PrintBarcodes from "@/pages/print-barcodes";
+import ScannerModePage from "@/pages/scanner-mode";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/add" component={AddItem} />
       <Route path="/transactions" component={Transactions} />
       <Route path="/print-barcodes" component={PrintBarcodes} />
+      <Route path="/mode" component={ScannerModePage} />
       <Route path="/login" component={Login} />
       <Route component={NotFound} />
     </Switch>

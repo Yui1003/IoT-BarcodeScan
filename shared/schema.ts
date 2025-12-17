@@ -16,3 +16,13 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export const scannerModeSchema = z.object({
+  mode: z.enum(['INCREMENT', 'DECREMENT', 'DETAILS']),
+  quantity: z.number().min(1).default(1),
+});
+
+export type ScannerMode = z.infer<typeof scannerModeSchema>;
+
+export const transactionActionSchema = z.enum(['ADD', 'DEDUCT', 'VIEW']);
+export type TransactionAction = z.infer<typeof transactionActionSchema>;

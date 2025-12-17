@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { History, ArrowDown, Package, RefreshCw } from 'lucide-react';
+import { History, ArrowDown, ArrowUp, Eye, Package, RefreshCw } from 'lucide-react';
 import { useLocation } from 'wouter';
 import Layout from '@/components/layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,11 +14,45 @@ import { useWebSocket } from '@/hooks/use-websocket';
 interface Transaction {
   id: string;
   barcode: string;
-  action: string;
+  action: 'ADD' | 'DEDUCT' | 'VIEW';
+  quantity?: number;
   timestamp: number;
   itemName: string;
   category: string;
 }
+
+const getActionDisplay = (action: string, quantity?: number) => {
+  switch (action) {
+    case 'ADD':
+      return {
+        icon: ArrowUp,
+        label: quantity ? `Added +${quantity}` : 'Added',
+        variant: 'default' as const,
+        className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+      };
+    case 'DEDUCT':
+      return {
+        icon: ArrowDown,
+        label: quantity ? `Deducted -${quantity}` : 'Deducted',
+        variant: 'default' as const,
+        className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 border-red-200 dark:border-red-800',
+      };
+    case 'VIEW':
+      return {
+        icon: Eye,
+        label: 'Viewed',
+        variant: 'default' as const,
+        className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+      };
+    default:
+      return {
+        icon: ArrowDown,
+        label: action,
+        variant: 'outline' as const,
+        className: '',
+      };
+  }
+};
 
 export default function Transactions() {
   const [realtimeTransactions, setRealtimeTransactions] = useState<Transaction[]>([]);
@@ -66,7 +100,7 @@ export default function Transactions() {
               Transaction History
             </h1>
             <p className="text-muted-foreground">
-              Real-time log of all inventory deductions.
+              Real-time log of all inventory changes.
             </p>
           </div>
           <Button
@@ -137,10 +171,16 @@ export default function Transactions() {
                           {transaction.barcode}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="gap-1">
-                            <ArrowDown className="h-3 w-3" />
-                            {transaction.action}
-                          </Badge>
+                          {(() => {
+                            const actionInfo = getActionDisplay(transaction.action, transaction.quantity);
+                            const IconComponent = actionInfo.icon;
+                            return (
+                              <Badge variant={actionInfo.variant} className={`gap-1 ${actionInfo.className}`}>
+                                <IconComponent className="h-3 w-3" />
+                                {actionInfo.label}
+                              </Badge>
+                            );
+                          })()}
                         </TableCell>
                       </TableRow>
                     ))}

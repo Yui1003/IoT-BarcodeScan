@@ -20,7 +20,8 @@ A full-stack inventory management system designed for ESP32 barcode scanner inte
 - Download barcode as PNG image
 - Export inventory to Excel spreadsheet
 - ESP32 REST API for barcode scanning
-- **Transaction History** - Real-time log of all inventory deductions with item names and timestamps
+- **Scanner Mode** - Three scanning modes (INCREMENT, DECREMENT, VIEW) with configurable quantities
+- **Transaction History** - Real-time log of all inventory changes (ADD/DEDUCT/VIEW) with color-coded badges
 - **Print All Barcodes** - Generate a printable document with all inventory barcodes
 - Stock status: Healthy (>=31%), Low (1-30%), Out of Stock (0%)
 
@@ -39,9 +40,14 @@ A full-stack inventory management system designed for ESP32 barcode scanner inte
   "transactions": {
     "-Nx123abc": {
       "barcode": "ITEM-2025-12345",
-      "action": "DEDUCT",
+      "action": "ADD|DEDUCT|VIEW",
+      "quantity": 5,
       "timestamp": 1700000000
     }
+  },
+  "scannerMode": {
+    "mode": "INCREMENT|DECREMENT|DETAILS",
+    "quantity": 1
   }
 }
 ```
@@ -50,7 +56,7 @@ A full-stack inventory management system designed for ESP32 barcode scanner inte
 ```
 ├── client/           # React frontend
 │   └── src/
-│       ├── pages/    # Dashboard, Inventory, AddItem, Login, Transactions, PrintBarcodes
+│       ├── pages/    # Dashboard, Inventory, AddItem, Transactions, PrintBarcodes, ScannerMode
 │       ├── hooks/
 │       │   └── use-websocket.ts  # WebSocket hook for real-time updates
 │       ├── components/
@@ -67,8 +73,12 @@ A full-stack inventory management system designed for ESP32 barcode scanner inte
 ## API Endpoints
 
 ### ESP32 Integration
-- `POST /api/scan` - Scan barcode, decreases stock by 1, logs transaction
+- `POST /api/scan` - Scan barcode, handles action based on scanner mode (INCREMENT/DECREMENT/DETAILS)
 - `GET /api/item/:barcode` - Get item details by barcode
+
+### Scanner Mode
+- `GET /api/scanner-mode` - Get current scanner mode and quantity
+- `PUT /api/scanner-mode` - Update scanner mode (mode: INCREMENT|DECREMENT|DETAILS, quantity: number)
 
 ### CRUD Operations
 - `GET /api/items` - Get all items
@@ -82,6 +92,7 @@ A full-stack inventory management system designed for ESP32 barcode scanner inte
 ### WebSocket Events
 - `items_update` - Broadcasts when inventory items change
 - `transaction_added` - Broadcasts when a new transaction is recorded (real-time deduction alerts)
+- `mode_update` - Broadcasts when scanner mode changes
 
 ## Firebase Setup (IMPORTANT for new imports)
 
