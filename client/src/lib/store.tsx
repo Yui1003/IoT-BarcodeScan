@@ -37,7 +37,7 @@ const InventoryContext = createContext<InventoryContextType | undefined>(undefin
 const calculateStatus = (quantity: number, originalStock: number): ItemStatus => {
   if (quantity === 0) return 'out_of_stock';
   const percentage = (quantity / originalStock) * 100;
-  if (percentage >= 50) return 'healthy';
+  if (percentage >= 31) return 'healthy';
   return 'low';
 };
 

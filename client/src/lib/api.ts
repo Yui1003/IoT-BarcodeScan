@@ -40,11 +40,15 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete item');
   },
 
-  async updateStock(id: string, quantity: number): Promise<Item> {
+  async updateStock(id: string, quantity: number, originalStock?: number): Promise<Item> {
+    const body: { quantity: number; originalStock?: number } = { quantity };
+    if (originalStock !== undefined) {
+      body.originalStock = originalStock;
+    }
     const response = await fetch(`/api/items/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quantity }),
+      body: JSON.stringify(body),
     });
     if (!response.ok) throw new Error('Failed to update stock');
     return response.json();

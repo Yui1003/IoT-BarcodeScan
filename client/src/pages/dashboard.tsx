@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Package, AlertTriangle, CheckCircle, Ban, FileSpreadsheet } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeItems } from '@/hooks/use-realtime-items';
 import * as XLSX from 'xlsx';
 
 const calculateStatus = (quantity: number, originalStock: number): 'healthy' | 'low' | 'out_of_stock' => {
   if (quantity === 0) return 'out_of_stock';
   const percentage = (quantity / originalStock) * 100;
-  if (percentage >= 50) return 'healthy';
+  if (percentage >= 31) return 'healthy';
   return 'low';
 };
 
@@ -23,10 +24,11 @@ const COLORS = {
 
 export default function Dashboard() {
   const { toast } = useToast();
+  useRealtimeItems();
+  
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['items'],
     queryFn: api.getItems,
-    refetchInterval: 5000,
   });
 
   const itemsWithStatus = items.map(item => ({

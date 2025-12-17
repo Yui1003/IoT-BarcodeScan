@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "./firebase";
+import { WebSocketServer, WebSocket } from "ws";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -8,6 +9,43 @@ export async function registerRoutes(
 ): Promise<Server> {
   const itemsRef = db.ref('items');
   const transactionsRef = db.ref('transactions');
+
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const clients = new Set<WebSocket>();
+
+  wss.on('connection', (ws) => {
+    clients.add(ws);
+    console.log('WebSocket client connected');
+
+    ws.on('close', () => {
+      clients.delete(ws);
+      console.log('WebSocket client disconnected');
+    });
+  });
+
+  const broadcast = (type: string, data: any) => {
+    const message = JSON.stringify({ type, data });
+    clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  };
+
+  itemsRef.on('value', async (snapshot) => {
+    const data = snapshot.val() || {};
+    const items = Object.entries(data).map(([barcode, item]: [string, any]) => ({
+      id: barcode,
+      barcode,
+      name: item.name,
+      category: item.category,
+      quantity: item.quantity,
+      originalStock: item.originalStock || item.quantity,
+      createdAt: item.createdAt || new Date().toISOString(),
+    }));
+    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    broadcast('items_update', items);
+  });
 
   app.get("/healthz", (req, res) => {
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
@@ -89,15 +127,21 @@ export async function registerRoutes(
   app.patch("/api/items/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { quantity } = req.body;
+      const { quantity, originalStock } = req.body;
 
       if (quantity === undefined) {
         return res.status(400).json({ error: 'Quantity is required' });
       }
 
-      await itemsRef.child(id).update({
+      const updateData: { quantity: number; originalStock?: number } = {
         quantity: Number(quantity),
-      });
+      };
+
+      if (originalStock !== undefined) {
+        updateData.originalStock = Number(originalStock);
+      }
+
+      await itemsRef.child(id).update(updateData);
 
       const snapshot = await itemsRef.child(id).once('value');
       const item = snapshot.val();
@@ -196,7 +240,7 @@ export async function registerRoutes(
       
       let status = 'out_of_stock';
       if (quantity > 0) {
-        status = percentage >= 50 ? 'healthy' : 'low';
+        status = percentage >= 31 ? 'healthy' : 'low';
       }
 
       res.json({

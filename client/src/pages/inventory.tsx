@@ -10,16 +10,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Search, Filter, Trash2, Edit2, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 import BarcodeDisplay, { type BarcodeDisplayHandle } from '@/components/barcode-display';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeItems } from '@/hooks/use-realtime-items';
 import * as XLSX from 'xlsx';
 
 const calculateStatus = (quantity: number, originalStock: number): 'healthy' | 'low' | 'out_of_stock' => {
   if (quantity === 0) return 'out_of_stock';
   const percentage = (quantity / originalStock) * 100;
-  if (percentage >= 50) return 'healthy';
+  if (percentage >= 31) return 'healthy';
   return 'low';
 };
 
 export default function Inventory() {
+  useRealtimeItems();
+  
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['items'],
     queryFn: api.getItems,
@@ -32,11 +35,13 @@ export default function Inventory() {
   const [barcodeDialogItem, setBarcodeDialogItem] = useState<Item | null>(null);
   const [editDialogItem, setEditDialogItem] = useState<Item | null>(null);
   const [editQuantity, setEditQuantity] = useState<number>(0);
+  const [editOriginalStock, setEditOriginalStock] = useState<number>(0);
   const barcodeRef = useRef<BarcodeDisplayHandle>(null);
 
   useEffect(() => {
     if (editDialogItem) {
       setEditQuantity(editDialogItem.quantity);
+      setEditOriginalStock(editDialogItem.originalStock);
     }
   }, [editDialogItem]);
 
@@ -59,14 +64,14 @@ export default function Inventory() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, quantity }: { id: string; quantity: number }) => 
-      api.updateStock(id, quantity),
+    mutationFn: ({ id, quantity, originalStock }: { id: string; quantity: number; originalStock: number }) => 
+      api.updateStock(id, quantity, originalStock),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
       setEditDialogItem(null);
       toast({
         title: "Item Updated",
-        description: "The item quantity has been updated.",
+        description: "The item has been updated.",
       });
     },
     onError: () => {
@@ -142,7 +147,7 @@ export default function Inventory() {
 
   const handleUpdateItem = () => {
     if (editDialogItem) {
-      updateMutation.mutate({ id: editDialogItem.id, quantity: editQuantity });
+      updateMutation.mutate({ id: editDialogItem.id, quantity: editQuantity, originalStock: editOriginalStock });
     }
   };
 
@@ -324,6 +329,17 @@ export default function Inventory() {
                   value={editQuantity} 
                   onChange={(e) => setEditQuantity(parseInt(e.target.value) || 0)}
                   min={0}
+                  data-testid="input-edit-quantity"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Original Stock</label>
+                <Input 
+                  type="number" 
+                  value={editOriginalStock} 
+                  onChange={(e) => setEditOriginalStock(parseInt(e.target.value) || 0)}
+                  min={1}
+                  data-testid="input-edit-original-stock"
                 />
               </div>
             </div>
