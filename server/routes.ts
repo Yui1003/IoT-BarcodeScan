@@ -47,6 +47,21 @@ export async function registerRoutes(
     broadcast('items_update', items);
   });
 
+  transactionsRef.on('child_added', async (snapshot) => {
+    const transaction = snapshot.val();
+    if (transaction) {
+      const itemSnapshot = await itemsRef.child(transaction.barcode).once('value');
+      const item = itemSnapshot.val();
+      const enrichedTransaction = {
+        id: snapshot.key,
+        ...transaction,
+        itemName: item?.name || 'Unknown Item',
+        category: item?.category || 'Unknown',
+      };
+      broadcast('transaction_added', enrichedTransaction);
+    }
+  });
+
   app.get("/healthz", (req, res) => {
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
   });
@@ -259,11 +274,20 @@ export async function registerRoutes(
     try {
       const snapshot = await transactionsRef.orderByChild('timestamp').limitToLast(100).once('value');
       const data = snapshot.val() || {};
+      const itemsSnapshot = await itemsRef.once('value');
+      const itemsData = itemsSnapshot.val() || {};
       
-      const transactions = Object.entries(data).map(([id, transaction]: [string, any]) => ({
-        id,
-        ...transaction,
-      }));
+      const transactions = await Promise.all(
+        Object.entries(data).map(async ([id, transaction]: [string, any]) => {
+          const item = itemsData[transaction.barcode];
+          return {
+            id,
+            ...transaction,
+            itemName: item?.name || 'Unknown Item',
+            category: item?.category || 'Unknown',
+          };
+        })
+      );
       
       transactions.sort((a, b) => b.timestamp - a.timestamp);
       
