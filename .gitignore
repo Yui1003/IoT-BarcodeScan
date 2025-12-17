@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Firebase credentials (should use environment variables in production)
+server/firebase-credentials.json
+firebase-credentials.json
+*-firebase-adminsdk-*.json
+
+# Attached assets with credentials
+attached_assets/*firebase*.json
+attached_assets/*firebase*.txt
+attached_assets/*service-account*.json
+attached_assets/*private-key*.json
+attached_assets/Pasted-*-type-service*.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Temporary files
+tmp/
+temp/

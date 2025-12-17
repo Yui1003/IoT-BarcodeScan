@@ -1,0 +1,211 @@
+Project Title:
+IoT-Enabled Inventory Management System Using ESP32 Barcode Scanner
+
+📌 Build the following full-stack web application:
+🌐 Tech Stack
+
+Frontend:
+
+React + Vite
+
+TailwindCSS
+
+Axios
+
+Backend:
+
+Node.js + Express
+
+Firebase Admin SDK
+
+REST API endpoints for ESP32
+
+Database:
+
+Firebase Firestore
+
+Other Requirements:
+
+JSBarcode or bwip-js for barcode image generation
+
+Firebase Authentication for login
+
+🧩 Required Features
+1️⃣ Dashboard
+
+Show total items
+
+Show counts of:
+
+Healthy stock (≥ 50%)
+
+Low stock (1–49%)
+
+Out of stock (0)
+
+Real-time Firestore updates
+
+Optional: charts using Chart.js
+
+2️⃣ Add Item Page
+
+Input fields:
+
+Item Name
+
+Category
+
+Quantity
+
+When submitted:
+
+Auto-generate a unique barcode ID (pattern: ITEM-####-RANDOM)
+
+Generate a printable barcode image
+
+Save to Firestore
+
+Show Download Barcode button
+
+3️⃣ Inventory List Page
+
+Table of all items
+
+Search + category filter
+
+Shows:
+
+Item name
+
+Quantity
+
+Barcode
+
+Status (healthy/low/out of stock)
+
+Edit & delete item
+
+4️⃣ Backend API for ESP32
+
+Create the following Express endpoints:
+
+POST /api/scan
+
+Request body:
+
+{
+  "barcode": "ITEM-2025-00012"
+}
+
+
+Actions:
+
+Find item in Firestore
+
+Decrease its stock by 1
+
+Return item details, category, and new stock count (JSON)
+
+GET /api/item/:barcode
+
+Return complete item details (name, category, quantity, status).
+
+5️⃣ ESP32 Workflow Requirements
+
+(Not implemented by Replit, but backend must support)
+
+ESP32 sends scanned barcode to backend
+
+Backend returns item details
+
+ESP32 displays name + stock on LCD
+
+🔥 Authentication
+
+Implement Firebase email/password login
+
+Protect dashboard and inventory pages
+
+📁 Required Folder Structure
+
+Generate this structure:
+
+/backend
+  index.js
+  firebase.js
+  /routes
+    scan.js
+    items.js
+
+/frontend
+  vite.config.js
+  tailwind.config.js
+  /src
+    App.jsx
+    main.jsx
+    /pages
+      Dashboard.jsx
+      AddItem.jsx
+      Inventory.jsx
+    /components
+      NavBar.jsx
+      StatCard.jsx
+      BarcodePreview.jsx
+
+📦 Firestore Collections
+
+Collection: items
+
+Document structure:
+
+name: string
+category: string
+quantity: number
+barcode: string
+createdAt: timestamp
+
+
+Backend must also compute:
+
+status: "healthy", "low", "zero"
+
+📌 Additional Required Logic
+Barcode Generator
+
+Use JSBarcode or bwip-js
+
+Generate PNG/SVG
+
+Download button for printing
+
+Real-Time Updates
+
+Use Firestore listeners on the dashboard
+
+Auto-refresh charts and statistics
+
+Inventory Status Logic
+
+If quantity >= 50% of original → healthy
+
+If 1–49% → low
+
+If 0 → out of stock
+
+📦 Deliverables Replit Must Produce
+
+Fully working React frontend
+
+Fully working Express backend
+
+Firebase connection (config placeholders allowed)
+
+REST API functional
+
+Dashboard, Add Item, Inventory pages
+
+Barcode generator & print page
+
+Clean UI using TailwindCSS
+
+Begin building the complete project using all the specifications above.
