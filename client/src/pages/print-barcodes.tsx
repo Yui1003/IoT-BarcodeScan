@@ -28,6 +28,26 @@ export default function PrintBarcodes() {
     const printContent = printRef.current;
     if (!printContent) return;
 
+    const barcodeItems = printContent.querySelectorAll('.barcode-item');
+    let barcodeHtml = '';
+
+    barcodeItems.forEach((item) => {
+      const canvas = item.querySelector('canvas');
+      const h3 = item.querySelector('h3');
+      const p = item.querySelector('p');
+      
+      if (canvas) {
+        const dataUrl = canvas.toDataURL('image/png');
+        barcodeHtml += `
+          <div class="barcode-item">
+            <h3>${h3?.textContent || ''}</h3>
+            <p>${p?.textContent || ''}</p>
+            <img src="${dataUrl}" alt="barcode" />
+          </div>
+        `;
+      }
+    });
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -82,7 +102,7 @@ export default function PrintBarcodes() {
               font-size: 12px;
               color: #666;
             }
-            .barcode-item canvas {
+            .barcode-item img {
               max-width: 100%;
               height: auto;
             }
@@ -96,7 +116,9 @@ export default function PrintBarcodes() {
         <body>
           <h1>InventoHub - All Barcodes</h1>
           <p class="subtitle">Generated on ${new Date().toLocaleString()} - Total Items: ${items.length}</p>
-          ${printContent.innerHTML}
+          <div class="barcode-grid">
+            ${barcodeHtml}
+          </div>
         </body>
       </html>
     `);
