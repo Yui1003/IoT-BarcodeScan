@@ -17,3 +17,6 @@ Environment Migration Complete:
 [x] Application running on port 5000
 [x] WebSocket connections working
 [x] API endpoints responding correctly
+
+Bug Fixes:
+[x] Fixed transaction history not refreshing when navigating between tabs - now uses route-aware refetch
