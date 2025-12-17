@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { History, ArrowDown, Package, RefreshCw } from 'lucide-react';
+import { useLocation } from 'wouter';
 import Layout from '@/components/layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -20,12 +21,19 @@ interface Transaction {
 }
 
 export default function Transactions() {
-  const queryClient = useQueryClient();
   const [realtimeTransactions, setRealtimeTransactions] = useState<Transaction[]>([]);
+  const [location] = useLocation();
 
   const { data: transactions = [], isLoading, refetch } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions'],
   });
+
+  useEffect(() => {
+    if (location === '/transactions') {
+      refetch();
+      setRealtimeTransactions([]);
+    }
+  }, [location, refetch]);
 
   useWebSocket({
     onMessage: (message: { type: string; data: unknown }) => {
@@ -40,11 +48,6 @@ export default function Transactions() {
     },
   });
 
-  useEffect(() => {
-    if (transactions.length > 0) {
-      setRealtimeTransactions([]);
-    }
-  }, [transactions]);
 
   const allTransactions = [...realtimeTransactions, ...transactions].filter(
     (t, index, self) => index === self.findIndex((item) => item.id === t.id)
