@@ -539,6 +539,19 @@ static void display_not_found(const char *barcode)
     oled_update();
 }
 
+static const char* get_status_text(const char *stock_health)
+{
+    if (stock_health == NULL || stock_health[0] == '\0' || strcmp(stock_health, "healthy") == 0) {
+        return "Healthy";
+    } else if (strcmp(stock_health, "low") == 0) {
+        return "Low";
+    } else if (strcmp(stock_health, "out_of_stock") == 0) {
+        return "Out of Stock";
+    } else {
+        return "Healthy";
+    }
+}
+
 static void display_out_of_stock(const char *name, const char *category)
 {
     oled_clear();
@@ -546,13 +559,14 @@ static void display_out_of_stock(const char *name, const char *category)
     
     char name_line[22];
     snprintf(name_line, sizeof(name_line), "%.21s", name);
-    oled_draw_string(0, 22, name_line);
+    oled_draw_string(0, 20, name_line);
     
     char cat_line[22];
     snprintf(cat_line, sizeof(cat_line), "Cat: %.16s", category);
-    oled_draw_string(0, 34, cat_line);
+    oled_draw_string(0, 32, cat_line);
     
-    oled_draw_string(0, 50, "Stock: 0");
+    oled_draw_string(0, 44, "Stock: 0");
+    oled_draw_string(0, 56, "Status: Out of Stock");
     oled_update();
 }
 
@@ -576,56 +590,13 @@ static void display_success(const char *name, const char *category, int new_stoc
     oled_update();
 }
 
-static void display_added(const char *name, const char *category, int quantity_added, int new_stock)
+static void display_added(const char *name, const char *category, int quantity_added, int new_stock, const char *stock_health)
 {
     oled_clear();
     
     char add_line[22];
     snprintf(add_line, sizeof(add_line), "ADDED +%d", quantity_added);
     oled_draw_string_large(5, 0, add_line);
-    
-    char name_line[22];
-    snprintf(name_line, sizeof(name_line), "%.21s", name);
-    oled_draw_string(0, 22, name_line);
-    
-    char cat_line[22];
-    snprintf(cat_line, sizeof(cat_line), "Cat: %.16s", category);
-    oled_draw_string(0, 34, cat_line);
-    
-    char stock_line[22];
-    snprintf(stock_line, sizeof(stock_line), "New Stock: %d", new_stock);
-    oled_draw_string(0, 50, stock_line);
-    
-    oled_update();
-}
-
-static void display_deducted(const char *name, const char *category, int quantity_deducted, int new_stock)
-{
-    oled_clear();
-    
-    char deduct_line[22];
-    snprintf(deduct_line, sizeof(deduct_line), "DEDUCTED -%d", quantity_deducted);
-    oled_draw_string_large(0, 0, deduct_line);
-    
-    char name_line[22];
-    snprintf(name_line, sizeof(name_line), "%.21s", name);
-    oled_draw_string(0, 22, name_line);
-    
-    char cat_line[22];
-    snprintf(cat_line, sizeof(cat_line), "Cat: %.16s", category);
-    oled_draw_string(0, 34, cat_line);
-    
-    char stock_line[22];
-    snprintf(stock_line, sizeof(stock_line), "New Stock: %d", new_stock);
-    oled_draw_string(0, 50, stock_line);
-    
-    oled_update();
-}
-
-static void display_view_details(const char *name, const char *category, int current_stock, int original_stock)
-{
-    oled_clear();
-    oled_draw_string_large(20, 0, "DETAILS");
     
     char name_line[22];
     snprintf(name_line, sizeof(name_line), "%.21s", name);
@@ -636,13 +607,68 @@ static void display_view_details(const char *name, const char *category, int cur
     oled_draw_string(0, 32, cat_line);
     
     char stock_line[22];
-    snprintf(stock_line, sizeof(stock_line), "Stock: %d/%d", current_stock, original_stock);
-    oled_draw_string(0, 48, stock_line);
+    snprintf(stock_line, sizeof(stock_line), "New Stock: %d", new_stock);
+    oled_draw_string(0, 44, stock_line);
+    
+    char status_line[22];
+    snprintf(status_line, sizeof(status_line), "Status: %s", get_status_text(stock_health));
+    oled_draw_string(0, 56, status_line);
     
     oled_update();
 }
 
-static void display_partial_deduction(const char *name, const char *category, int quantity_deducted, int requested, int new_stock)
+static void display_deducted(const char *name, const char *category, int quantity_deducted, int new_stock, const char *stock_health)
+{
+    oled_clear();
+    
+    char deduct_line[22];
+    snprintf(deduct_line, sizeof(deduct_line), "DEDUCTED -%d", quantity_deducted);
+    oled_draw_string_large(0, 0, deduct_line);
+    
+    char name_line[22];
+    snprintf(name_line, sizeof(name_line), "%.21s", name);
+    oled_draw_string(0, 20, name_line);
+    
+    char cat_line[22];
+    snprintf(cat_line, sizeof(cat_line), "Cat: %.16s", category);
+    oled_draw_string(0, 32, cat_line);
+    
+    char stock_line[22];
+    snprintf(stock_line, sizeof(stock_line), "New Stock: %d", new_stock);
+    oled_draw_string(0, 44, stock_line);
+    
+    char status_line[22];
+    snprintf(status_line, sizeof(status_line), "Status: %s", get_status_text(stock_health));
+    oled_draw_string(0, 56, status_line);
+    
+    oled_update();
+}
+
+static void display_view_details(const char *name, const char *category, int current_stock, int original_stock, const char *stock_health)
+{
+    oled_clear();
+    oled_draw_string_large(20, 0, "DETAILS");
+    
+    char name_line[22];
+    snprintf(name_line, sizeof(name_line), "%.21s", name);
+    oled_draw_string(0, 18, name_line);
+    
+    char cat_line[22];
+    snprintf(cat_line, sizeof(cat_line), "Cat: %.16s", category);
+    oled_draw_string(0, 30, cat_line);
+    
+    char stock_line[22];
+    snprintf(stock_line, sizeof(stock_line), "Stock: %d/%d", current_stock, original_stock);
+    oled_draw_string(0, 42, stock_line);
+    
+    char status_line[22];
+    snprintf(status_line, sizeof(status_line), "Status: %s", get_status_text(stock_health));
+    oled_draw_string(0, 54, status_line);
+    
+    oled_update();
+}
+
+static void display_partial_deduction(const char *name, const char *category, int quantity_deducted, int requested, int new_stock, const char *stock_health)
 {
     oled_clear();
     
@@ -652,19 +678,19 @@ static void display_partial_deduction(const char *name, const char *category, in
     
     char name_line[22];
     snprintf(name_line, sizeof(name_line), "%.21s", name);
-    oled_draw_string(0, 20, name_line);
+    oled_draw_string(0, 18, name_line);
     
     char info_line[22];
-    snprintf(info_line, sizeof(info_line), "Only %d avail", quantity_deducted);
-    oled_draw_string(0, 32, info_line);
-    
-    char req_line[22];
-    snprintf(req_line, sizeof(req_line), "Requested: %d", requested);
-    oled_draw_string(0, 44, req_line);
+    snprintf(info_line, sizeof(info_line), "Req:%d Got:%d", requested, quantity_deducted);
+    oled_draw_string(0, 30, info_line);
     
     char stock_line[22];
     snprintf(stock_line, sizeof(stock_line), "New Stock: %d", new_stock);
-    oled_draw_string(0, 56, stock_line);
+    oled_draw_string(0, 42, stock_line);
+    
+    char status_line[22];
+    snprintf(status_line, sizeof(status_line), "Status: %s", get_status_text(stock_health));
+    oled_draw_string(0, 54, status_line);
     
     oled_update();
 }
@@ -983,7 +1009,7 @@ static void api_task(void *arg)
                 if (strcmp(result.action, "ADD") == 0) {
                     ESP_LOGI(TAG, "Added %d to %s, new stock: %d", result.quantity_changed, result.name, result.new_stock);
                     if (oled_ready) {
-                        display_added(result.name, result.category, result.quantity_changed, result.new_stock);
+                        display_added(result.name, result.category, result.quantity_changed, result.new_stock, result.stock_health);
                     }
                 } else if (strcmp(result.action, "DEDUCT") == 0) {
                     if (result.was_partial_deduction) {
@@ -991,18 +1017,18 @@ static void api_task(void *arg)
                                  result.quantity_changed, result.requested_quantity, result.name);
                         if (oled_ready) {
                             display_partial_deduction(result.name, result.category, result.quantity_changed, 
-                                                      result.requested_quantity, result.new_stock);
+                                                      result.requested_quantity, result.new_stock, result.stock_health);
                         }
                     } else {
                         ESP_LOGI(TAG, "Deducted %d from %s, new stock: %d", result.quantity_changed, result.name, result.new_stock);
                         if (oled_ready) {
-                            display_deducted(result.name, result.category, result.quantity_changed, result.new_stock);
+                            display_deducted(result.name, result.category, result.quantity_changed, result.new_stock, result.stock_health);
                         }
                     }
                 } else if (strcmp(result.action, "VIEW") == 0) {
                     ESP_LOGI(TAG, "View details: %s, stock: %d/%d", result.name, result.new_stock, result.quantity);
                     if (oled_ready) {
-                        display_view_details(result.name, result.category, result.new_stock, result.quantity);
+                        display_view_details(result.name, result.category, result.new_stock, result.quantity, result.stock_health);
                     }
                 } else {
                     ESP_LOGI(TAG, "Scan success: %s, new stock: %d", result.name, result.new_stock);
@@ -1014,11 +1040,7 @@ static void api_task(void *arg)
             
             memset(api_barcode, 0, sizeof(api_barcode));
             
-            vTaskDelay(pdMS_TO_TICKS(3000));
-            led_all_off();
-            if (oled_ready) {
-                display_startup();
-            }
+            // Keep display and LED on until next scan (removed auto-off)
         }
     }
 }
@@ -1185,7 +1207,7 @@ static void usb_host_task(void *arg)
 void app_main(void)
 {
     ESP_LOGI(TAG, "=========================================");
-    ESP_LOGI(TAG, "  Inventory Management Scanner v2.1");
+    ESP_LOGI(TAG, "  Inventory Management Scanner v2.2");
     ESP_LOGI(TAG, "  ESP32-S3 + USB Scanner + OLED + LEDs");
     ESP_LOGI(TAG, "  ESP-IDF v5.3.x Compatible");
     ESP_LOGI(TAG, "=========================================");

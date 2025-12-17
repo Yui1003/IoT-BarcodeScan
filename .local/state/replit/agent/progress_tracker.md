@@ -32,4 +32,13 @@ December 17, 2025 - New Features:
 [x] ESP32 OLED display shows partial deduction message when trying to deduct more than available stock
 [x] ESP32 firmware version updated to v2.1
 
+December 17, 2025 - ESP32 Firmware v2.2 Updates:
+[x] LEDs now stay lit until next scan (removed 3-second auto-off)
+[x] Added stock health status to OLED display for ADD mode (shows: Healthy, Low, or Out of Stock)
+[x] Added stock health status to OLED display for DEDUCT mode
+[x] Added stock health status to OLED display for partial deduction
+[x] Added stock health status to OLED display for VIEW DETAILS mode
+[x] Updated display_out_of_stock to show "Status: Out of Stock"
+[x] ESP32 firmware version updated to v2.2
+
 Migration Status: COMPLETE (December 17, 2025)
