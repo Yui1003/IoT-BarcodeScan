@@ -20,3 +20,5 @@ Environment Migration Complete:
 
 Bug Fixes:
 [x] Fixed transaction history not refreshing when navigating between tabs - now uses route-aware refetch
+
+Migration Status: COMPLETE (December 17, 2025)
