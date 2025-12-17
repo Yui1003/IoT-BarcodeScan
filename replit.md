@@ -20,7 +20,8 @@ A full-stack inventory management system designed for ESP32 barcode scanner inte
 - Download barcode as PNG image
 - Export inventory to Excel spreadsheet
 - ESP32 REST API for barcode scanning
-- Transaction logging for all scan operations
+- **Transaction History** - Real-time log of all inventory deductions with item names and timestamps
+- **Print All Barcodes** - Generate a printable document with all inventory barcodes
 - Stock status: Healthy (>=31%), Low (1-30%), Out of Stock (0%)
 
 ## Database Structure (Realtime Database)
@@ -49,14 +50,16 @@ A full-stack inventory management system designed for ESP32 barcode scanner inte
 ```
 ├── client/           # React frontend
 │   └── src/
-│       ├── pages/    # Dashboard, Inventory, AddItem, Login
+│       ├── pages/    # Dashboard, Inventory, AddItem, Login, Transactions, PrintBarcodes
+│       ├── hooks/
+│       │   └── use-websocket.ts  # WebSocket hook for real-time updates
 │       ├── components/
 │       │   └── barcode-display.tsx  # Barcode generator with download
 │       └── lib/
 │           └── api.ts  # API client
 ├── server/           # Express backend
 │   ├── index.ts      # Server entry point
-│   ├── routes.ts     # API endpoints
+│   ├── routes.ts     # API endpoints with WebSocket broadcasts
 │   └── firebase.ts   # Firebase Realtime Database configuration
 └── shared/           # Shared schemas
 ```
@@ -74,7 +77,11 @@ A full-stack inventory management system designed for ESP32 barcode scanner inte
 - `DELETE /api/items/:id` - Delete item
 
 ### Transactions
-- `GET /api/transactions` - Get recent scan transactions
+- `GET /api/transactions` - Get recent scan transactions (enriched with item names and categories)
+
+### WebSocket Events
+- `items_update` - Broadcasts when inventory items change
+- `transaction_added` - Broadcasts when a new transaction is recorded (real-time deduction alerts)
 
 ## Firebase Setup (IMPORTANT for new imports)
 

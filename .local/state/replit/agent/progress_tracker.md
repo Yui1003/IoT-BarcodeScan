@@ -9,3 +9,5 @@ Additional Features Implemented:
 [x] Real-time WebSocket updates - Changes sync instantly without page refresh
 [x] Edit dialog updated to include Original Stock field alongside Quantity
 [x] Stock health thresholds fixed: Healthy >= 31%, Low = 1-30%, Out of Stock = 0%
+[x] Transaction History page - Real-time log of all inventory deductions with item names and timestamps
+[x] Print All Barcodes page - Generate a printable document with all inventory barcodes in a grid layout
