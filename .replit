@@ -38,3 +38,40 @@ externalPort = 80
 deploymentTarget = "autoscale"
 run = ["node", "./dist/index.cjs"]
 build = ["npm", "run", "build"]
+
+[userenv]
+
+[userenv.shared]
+FIREBASE_PROJECT_ID = "iot-scanner-a05cb"
+FIREBASE_CLIENT_EMAIL = "firebase-adminsdk-fbsvc@iot-scanner-a05cb.iam.gserviceaccount.com"
+FIREBASE_PRIVATE_KEY = """
+-----BEGIN PRIVATE KEY-----
+MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC3cI04uK+QzCUa
+u+h/+ohRhR71xfqizcM+/4tgoy6ci72HU3EJhhPys1bdZYaOAFH97qQrYz6Qh/+c
+/Tte7IV+n66DcsqMl7edO7VEStFjHjAxzoly2jh6FJKCyoAkknFyPx8lyvZlxCtB
+vmSEGLVikSBEZAKNpPh7Ha7xnumPzUYa8eVxKKlajRwq2kZsPyU2A+SzED2NVynP
+SZxTra7DXlgCpKW5hX39n24xyl1s3ESV5FhIozP1gnL35Ap3BcS3Pzu5BM1s9J5N
+kv8Xcu61NzOgv9iN8SykgBlZ5j0dhbE8mavcofhKx3l3v50J6NK+Osq+mcOB6Ecy
+G8EtMG7FAgMBAAECggEACCBYJa8SKHNeTFG5SjU3yRfWkP/0Nf2UU7+FJBg0w5QO
+UW4gQ26T+DT648JJW6IRcZL+j9cM2agoP3TgppvuGOlvBuC4WZkZ58EZVc0bXsKp
+4VoWBidXq7acmIN5QMkQPPeXOXxTWmJwE3fL7Ze5g5J+LkentDDJVzfMJCwsbhPX
+cLzFutu6X1ezwHLEkZV/A8tqVK2ZNPNHpaFHkSRmrDEwW6ahmAeTkMvId12H6kkO
+ovbKm84XlQJZnIJBsCPRdb3HUk62i52+yZO54Yj+qJwl+vSCBXfxfA9ILK4A4AVV
+6+/0EDr9wPg1sMoxoF92wyquLiVKZgrdKkJhT3J1EwKBgQDZ182kjwY/aHLXGzzD
+958w0ipQ3iiPHOv/ABhcvoGyCbmkGXi0jzpIywschNOTaOa6oSwzpXYa6/spaTmD
+tOKMoRBd+AwUJNhGB9AjRIISP93hD4uge4iNYNGzQKw4TqJpQuqpC8kbbXMLVrhr
+ggqppJYxoTsM/d6wStJjItwfxwKBgQDXkhWrBrJsp0JJ3jccbJ1awu87tz6uqQEh
+tKwpz2F3u4giWJaPTgoDQIoMQhH5/p88aHJ2exydKQrxgFWdbcMfaqPFxGXJRDSR
+RkT55f908yx8nPyA6FPHCVbHrv9wwhfurEBf0hJmLE36rVEbck4//W5+85d61c/7
+eOVTR0tVEwKBgQCV/MrfKYaQs9aWGm/NMboOgDWYdk2Qs8YdTbB4csaTkbSastrz
+3sWvhvVAjoeqMAjkqMHpUVwvDxlgGs35y9pMHz1IpdeTKwcpuIlrLukrrYOUSQLG
+3SdYyDe55qZtIl8agHNXLwEpfENApFXX17KFuQecZjllKYpg8TNIBKFw0wKBgQDR
+2b4KLYzHxNL9Abt4iitsTVOCOFJmyNL3MuBeGylw2zgc50w52OhaXhuE71R8nuf4
+cFztBc/HFks26Y1uoYlPLgqb3SKRGTprKZLACqvx9z+ZV2FfQ8s6eNbnsG2uIOQX
+Tcuk++U5XWvT2aCZLV8LX/SO1SbjRv0eeoQT29VzzQKBgQCLjrlaG2MRtuc8kyBI
+e5zKQU+fC1FdXp+DoFktRX3kzI3sBJtvXVJT5nN/EFjYtPDQiJWqjY6x2udxQu97
+o0+7ydyphEr+OuaXyEceCO9vg7rldnuWJolZSEa8anNxUy56HA2sTWMIhZL5sB4H
+oqXIsfeEgBjbtirrBjka1M+W3g==
+-----END PRIVATE KEY-----
+"""
+FIREBASE_DATABASE_URL = "https://iot-scanner-a05cb-default-rtdb.asia-southeast1.firebasedatabase.app"
