@@ -12,15 +12,16 @@ A full-stack inventory management system designed for ESP32 barcode scanner inte
 
 ## Features
 - Real-time dashboard with stock health analytics and charts
+- **Real-time WebSocket updates** - Changes sync instantly without page refresh
 - Add items with auto-generated barcodes (ITEM-YYYY-##### pattern)
 - Category combobox with existing categories dropdown
 - Inventory management with search and category filtering
-- Edit item quantities directly from inventory
+- Edit item quantities and original stock directly from inventory
 - Download barcode as PNG image
 - Export inventory to Excel spreadsheet
 - ESP32 REST API for barcode scanning
 - Transaction logging for all scan operations
-- Stock status: Healthy (>=50%), Low (1-49%), Out of Stock (0)
+- Stock status: Healthy (>=31%), Low (1-30%), Out of Stock (0%)
 
 ## Database Structure (Realtime Database)
 ```json
