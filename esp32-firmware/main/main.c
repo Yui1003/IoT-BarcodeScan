@@ -41,12 +41,12 @@
 /* ================= CONFIGURATION ================= */
 
 // WiFi Configuration - UPDATE THESE
-#define WIFI_SSID           "Del Rosario Family"
-#define WIFI_PASSWORD       "Shinzou13579"
+#define WIFI_SSID           "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD       "YOUR_WIFI_PASSWORD"
 #define WIFI_MAXIMUM_RETRY  5
 
 // Inventory API Configuration - UPDATE THIS TO YOUR DEPLOYED APP URL
-#define API_BASE_URL        "https://2e24d76c-8ed7-4b89-905e-4f7b25356eb3-00-2b2ix61djlegz.sisko.replit.dev"
+#define API_BASE_URL        "https://YOUR-REPLIT-APP.replit.app"
 #define API_SCAN_ENDPOINT   "/api/scan"
 
 // OLED Display Configuration (SSD1306 128x64)

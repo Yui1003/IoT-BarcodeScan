@@ -1,10 +1,6 @@
 import admin from 'firebase-admin';
 import { readFileSync, existsSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { join } from 'path';
 
 interface ServiceAccount {
   projectId: string;
@@ -12,26 +8,9 @@ interface ServiceAccount {
   privateKey: string;
 }
 
-const REALTIME_DATABASE_URL = 'https://iot-scanner-a05cb-default-rtdb.asia-southeast1.firebasedatabase.app';
+const REALTIME_DATABASE_URL = process.env.FIREBASE_DATABASE_URL || 'https://iot-scanner-a05cb-default-rtdb.asia-southeast1.firebasedatabase.app';
 
 function getFirebaseCredentials(): ServiceAccount {
-  const credentialsPath = join(__dirname, 'firebase-credentials.json');
-  
-  if (existsSync(credentialsPath)) {
-    try {
-      const content = readFileSync(credentialsPath, 'utf8');
-      const parsed = JSON.parse(content);
-      console.log('Firebase: Using credentials from firebase-credentials.json');
-      return {
-        projectId: parsed.project_id,
-        clientEmail: parsed.client_email,
-        privateKey: parsed.private_key,
-      };
-    } catch (error) {
-      console.error('Failed to read firebase-credentials.json:', error);
-    }
-  }
-
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
@@ -43,6 +22,30 @@ function getFirebaseCredentials(): ServiceAccount {
       clientEmail,
       privateKey: privateKey.replace(/\\n/g, '\n'),
     };
+  }
+
+  const possiblePaths = [
+    join(process.cwd(), 'server', 'firebase-credentials.json'),
+    join(process.cwd(), 'firebase-credentials.json'),
+    'server/firebase-credentials.json',
+    'firebase-credentials.json',
+  ];
+
+  for (const credentialsPath of possiblePaths) {
+    if (existsSync(credentialsPath)) {
+      try {
+        const content = readFileSync(credentialsPath, 'utf8');
+        const parsed = JSON.parse(content);
+        console.log(`Firebase: Using credentials from ${credentialsPath}`);
+        return {
+          projectId: parsed.project_id,
+          clientEmail: parsed.client_email,
+          privateKey: parsed.private_key,
+        };
+      } catch (error) {
+        console.error(`Failed to read ${credentialsPath}:`, error);
+      }
+    }
   }
 
   console.error(`

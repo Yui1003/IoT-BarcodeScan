@@ -9,6 +9,14 @@ export async function registerRoutes(
   const itemsRef = db.ref('items');
   const transactionsRef = db.ref('transactions');
 
+  app.get("/healthz", (req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  app.get("/health", (req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   app.get("/api/items", async (req, res) => {
     try {
       const snapshot = await itemsRef.once('value');
