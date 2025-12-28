@@ -23,7 +23,7 @@ export function useRealtimeItems() {
         try {
           const message = JSON.parse(event.data);
           if (message.type === 'items_update') {
-            queryClient.setQueryData(['/api/items'], message.data as Item[]);
+            queryClient.setQueryData(['items'], message.data as Item[]);
           }
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);
