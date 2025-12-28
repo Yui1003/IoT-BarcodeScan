@@ -42,3 +42,7 @@ December 17, 2025 - ESP32 Firmware v2.2 Updates:
 [x] ESP32 firmware version updated to v2.2
 
 Migration Status: COMPLETE (December 17, 2025)
+
+December 28, 2025 - Environment Fix:
+[x] Fixed tsx not found error by running npm install
+[x] Application successfully restarted and verified working
