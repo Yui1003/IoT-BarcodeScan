@@ -3,6 +3,9 @@ import { createServer, type Server } from "http";
 import { db } from "./firebase";
 import { WebSocketServer, WebSocket } from "ws";
 import { scannerModeSchema, type ScannerMode } from "@shared/schema";
+import { Resend } from 'resend';
+
+const resend = new Resend('re_KFYwan82_9z2jGLK3dE7f9662eDLiar1j');
 
 export async function registerRoutes(
   httpServer: Server,
@@ -11,6 +14,7 @@ export async function registerRoutes(
   const itemsRef = db.ref('items');
   const transactionsRef = db.ref('transactions');
   const scannerModeRef = db.ref('scannerMode');
+  const emailSettingsRef = db.ref('emailSettings');
 
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   const clients = new Set<WebSocket>();
@@ -32,6 +36,29 @@ export async function registerRoutes(
         client.send(message);
       }
     });
+  };
+
+  const sendEmailNotification = async (item: any, status: 'low' | 'out_of_stock') => {
+    try {
+      const settingsSnapshot = await emailSettingsRef.once('value');
+      const emails = settingsSnapshot.val() || [];
+      if (emails.length === 0) return;
+
+      const subject = status === 'low' ? `Low Stock Alert: ${item.name}` : `Out of Stock Alert: ${item.name}`;
+      const message = status === 'low' 
+        ? `Item "${item.name}" (Barcode: ${item.barcode}) is running low on stock. Current quantity: ${item.quantity}.`
+        : `Item "${item.name}" (Barcode: ${item.barcode}) is now out of stock.`;
+
+      await resend.emails.send({
+        from: 'Inventory <onboarding@resend.dev>',
+        to: emails,
+        subject: subject,
+        text: message,
+      });
+      console.log(`Email notification sent to ${emails.length} recipients for item ${item.name}`);
+    } catch (error) {
+      console.error('Error sending email notification:', error);
+    }
   };
 
   itemsRef.on('value', async (snapshot) => {
@@ -314,6 +341,10 @@ export async function registerRoutes(
 
         const stockHealth = getStockHealth(newQuantity, originalStock);
         
+        if (stockHealth === 'out_of_stock' || stockHealth === 'low') {
+          sendEmailNotification({ ...item, barcode, quantity: newQuantity }, stockHealth);
+        }
+
         let message = `Stock decreased by ${deductAmount}`;
         if (wasPartialDeduction) {
           message = `Only ${deductAmount} deducted (was max available). Requested: ${modeQuantity}`;
@@ -445,6 +476,31 @@ export async function registerRoutes(
     } catch (error) {
       console.error('Error fetching transactions:', error);
       res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+  });
+
+  app.get("/api/email-settings", async (req, res) => {
+    try {
+      const snapshot = await emailSettingsRef.once('value');
+      const emails = snapshot.val() || [];
+      res.json(emails);
+    } catch (error) {
+      console.error('Error fetching email settings:', error);
+      res.status(500).json({ error: 'Failed to fetch email settings' });
+    }
+  });
+
+  app.put("/api/email-settings", async (req, res) => {
+    try {
+      const emails = req.body;
+      if (!Array.isArray(emails)) {
+        return res.status(400).json({ error: 'Invalid email list' });
+      }
+      await emailSettingsRef.set(emails);
+      res.json(emails);
+    } catch (error) {
+      console.error('Error updating email settings:', error);
+      res.status(500).json({ error: 'Failed to update email settings' });
     }
   });
 
