@@ -24,7 +24,6 @@ function Router() {
       <Route path="/transactions" component={Transactions} />
       <Route path="/print-barcodes" component={PrintBarcodes} />
       <Route path="/mode" component={ScannerModePage} />
-      <Route path="/settings/email" component={EmailSettings} />
       <Route path="/login" component={Login} />
       <Route component={NotFound} />
     </Switch>

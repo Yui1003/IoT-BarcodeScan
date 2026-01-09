@@ -39,11 +39,6 @@ const items = [
     url: "/mode",
     icon: Scan,
   },
-  {
-    title: "Email Notifications",
-    url: "/settings/email",
-    icon: Mail,
-  },
 ]
 
 export function AppSidebar() {

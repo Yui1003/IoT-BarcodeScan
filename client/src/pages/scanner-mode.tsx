@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Settings2, Plus, Minus, Eye, Save, Loader2 } from 'lucide-react';
+import { Settings2, Plus, Minus, Eye, Save, Loader2, Mail, X } from 'lucide-react';
 import Layout from '@/components/layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useWebSocket } from '@/hooks/use-websocket';
@@ -21,10 +22,55 @@ export default function ScannerModePage() {
   const { toast } = useToast();
   const [selectedMode, setSelectedMode] = useState<ScannerMode['mode']>('DECREMENT');
   const [quantity, setQuantity] = useState(1);
+  const [newEmail, setNewEmail] = useState("");
 
-  const { data: scannerMode, isLoading } = useQuery<ScannerMode>({
+  const { data: scannerMode, isLoading: isLoadingMode } = useQuery<ScannerMode>({
     queryKey: ['/api/scanner-mode'],
   });
+
+  const { data: emails = [], isLoading: isLoadingEmails } = useQuery<string[]>({
+    queryKey: ["/api/email-settings"],
+  });
+
+  const emailMutation = useMutation({
+    mutationFn: async (updatedEmails: string[]) => {
+      return apiRequest("PUT", "/api/email-settings", updatedEmails);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-settings"] });
+      toast({
+        title: "Success",
+        description: "Email settings updated.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      toast({ title: "Invalid Email", description: "Please enter a valid email.", variant: "destructive" });
+      return;
+    }
+    if (emails.includes(newEmail)) {
+      toast({ title: "Duplicate", description: "Email already added.", variant: "destructive" });
+      return;
+    }
+    emailMutation.mutate([...emails, newEmail]);
+    setNewEmail("");
+  };
+
+  const handleRemoveEmail = (emailToRemove: string) => {
+    emailMutation.mutate(emails.filter(e => e !== emailToRemove));
+  };
 
   useWebSocket({
     onMessage: (message: { type: string; data: unknown }) => {
@@ -97,7 +143,7 @@ export default function ScannerModePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {isLoading ? (
+            {isLoadingMode ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
@@ -198,6 +244,68 @@ export default function ScannerModePage() {
                 </div>
               </>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Notifications
+            </CardTitle>
+            <CardDescription>
+              Add email addresses to receive alerts for low stock and out of stock items.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <form onSubmit={handleAddEmail} className="flex gap-2">
+              <Input
+                placeholder="Enter email address"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="flex-1"
+                data-testid="input-email"
+              />
+              <Button type="submit" disabled={emailMutation.isPending} size="sm">
+                {emailMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                Add
+              </Button>
+            </form>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Notification Recipients</h3>
+              {isLoadingEmails ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : emails.length === 0 ? (
+                <p className="text-sm text-center py-4 text-muted-foreground bg-muted/50 rounded-md border border-dashed">
+                  No email addresses added yet.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {emails.map((email) => (
+                    <Badge 
+                      key={email} 
+                      variant="secondary" 
+                      className="pl-3 pr-1 py-1 flex items-center gap-1 text-sm h-auto"
+                      data-testid={`badge-email-${email}`}
+                    >
+                      {email}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 rounded-full hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => handleRemoveEmail(email)}
+                        data-testid={`button-remove-email-${email}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
