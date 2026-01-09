@@ -5,7 +5,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { scannerModeSchema, type ScannerMode } from "@shared/schema";
 import { Resend } from 'resend';
 
-const resend = new Resend('re_KFYwan82_9z2jGLK3dE7f9662eDLiar1j');
+const resend = new Resend(process.env.RESEND_API_KEY || 're_KFYwan82_9z2jGLK3dE7f9662eDLiar1j');
 
 export async function registerRoutes(
   httpServer: Server,
