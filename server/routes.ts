@@ -51,7 +51,7 @@ export async function registerRoutes(
 
       await resend.emails.send({
         from: 'Inventory <onboarding@resend.dev>',
-        to: emails,
+        to: emails.length > 0 ? [emails[0]] : [],
         subject: subject,
         text: message,
       });
