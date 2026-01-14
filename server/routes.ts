@@ -54,7 +54,7 @@ export async function registerRoutes(
         : `Item "${item.name}" (Barcode: ${item.barcode}) is now out of stock.`;
 
       await resend.emails.send({
-        from: 'Inventory <inventorymanagementsystem2025@gmail.com>',
+        from: 'Inventory <onboarding@resend.dev>',
         to: emails.length > 0 ? [emails[0]] : [],
         subject: subject,
         text: message,
