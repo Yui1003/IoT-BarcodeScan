@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,6 +15,15 @@ import ScannerModePage from "@/pages/scanner-mode";
 import EmailSettings from "@/pages/email-settings";
 
 function Router() {
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+    if (!isAuthenticated && location !== '/login') {
+      setLocation('/login');
+    }
+  }, [location, setLocation]);
+
   return (
     <Switch>
       <Route path="/" component={Dashboard} />

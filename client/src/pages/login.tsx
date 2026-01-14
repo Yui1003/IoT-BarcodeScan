@@ -16,11 +16,17 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate auth delay
-    setTimeout(() => {
+    // Admin credentials validation
+    if (email === 'inventorymanagementsystem2025@gmail.com' && password === 'InventoryManagementSystem13579') {
+      localStorage.setItem('isAuthenticated', 'true');
+      setTimeout(() => {
+        setIsLoading(false);
+        setLocation('/');
+      }, 1000);
+    } else {
       setIsLoading(false);
-      setLocation('/');
-    }, 1500);
+      alert('Invalid credentials');
+    }
   };
 
   return (
@@ -40,7 +46,7 @@ export default function Login() {
           <form onSubmit={handleLogin}>
             <CardHeader>
               <CardTitle>Login</CardTitle>
-              <CardDescription>Enter your credentials to continue</CardDescription>
+              <CardDescription>Enter your admin credentials to continue</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -82,10 +88,6 @@ export default function Login() {
             </CardFooter>
           </form>
         </Card>
-        
-        <p className="text-center text-sm text-muted-foreground">
-          Demo Account: Any email / password works
-        </p>
       </div>
     </div>
   );

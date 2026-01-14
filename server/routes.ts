@@ -5,7 +5,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { scannerModeSchema, type ScannerMode } from "@shared/schema";
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_KFYwan82_9z2jGLK3dE7f9662eDLiar1j');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function registerRoutes(
   httpServer: Server,
@@ -40,6 +40,10 @@ export async function registerRoutes(
 
   const sendEmailNotification = async (item: any, status: 'low' | 'out_of_stock') => {
     try {
+      if (!process.env.RESEND_API_KEY) {
+        console.warn('RESEND_API_KEY not found, skipping email notification');
+        return;
+      }
       const settingsSnapshot = await emailSettingsRef.once('value');
       const emails = settingsSnapshot.val() || [];
       if (emails.length === 0) return;
@@ -50,7 +54,7 @@ export async function registerRoutes(
         : `Item "${item.name}" (Barcode: ${item.barcode}) is now out of stock.`;
 
       await resend.emails.send({
-        from: 'Inventory <onboarding@resend.dev>',
+        from: 'Inventory <inventorymanagementsystem2025@gmail.com>',
         to: emails.length > 0 ? [emails[0]] : [],
         subject: subject,
         text: message,
