@@ -59,9 +59,11 @@ January 14, 2026 - Environment Fix:
 [x] API endpoints responding correctly
 [x] WebSocket connections established
 
-January 23, 2026 - Environment Fix:
+January 23, 2026 - Feature Updates:
 [x] Ran npm install to restore node_modules
 [x] Fixed Resend API initialization to be conditional (prevents crash when API key not set)
 [x] Application successfully restarted and verified working
 [x] Express server running on port 5000
 [x] API endpoints responding correctly
+[x] Updated Print Barcodes page with selection and custom quantity options
+[x] Enhanced handlePrint logic to support multiple copies per item
